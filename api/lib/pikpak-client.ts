@@ -12,18 +12,33 @@ const CLIENT_CONSTANTS = {
 };
 
 async function pikpakFetch(url: string, options: RequestInit = {}) {
+    const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
     try {
-        const response = await fetch(url, options);
+        const response = await fetch(url, { ...options, headers });
+        const responseText = await response.text();
+
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ 
-                error_description: `Request failed with status ${response.status}. The response was not valid JSON.` 
-            }));
-            throw new Error(errorData.error_description || 'An unknown PikPak API error occurred');
+            try {
+                const errorData = JSON.parse(responseText);
+                throw new Error(errorData.error_description || `PikPak API Error: ${response.status}`);
+            } catch (e) {
+                throw new Error(`Request failed with status ${response.status}. Response: ${responseText.slice(0, 150)}`);
+            }
         }
-        return response.json();
+        
+        // Handle successful but empty responses to prevent JSON parsing errors
+        if (!responseText) {
+            return {};
+        }
+
+        return JSON.parse(responseText);
     } catch (error) {
         if (error instanceof Error) {
-            // Re-throw network errors or errors from the block above with more context.
             console.error(`PikPak API request to ${url} failed:`, error.message);
             throw new Error(`Failed to communicate with PikPak API: ${error.message}`);
         }
@@ -41,18 +56,20 @@ export async function loginToPikPak(username: string, password: string) {
         password,
     };
 
-    const data = await pikpakFetch(url, {
+    const data: any = await pikpakFetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
     });
 
+    if (!data.access_token) {
+        throw new Error('Login response from PikPak was invalid or did not contain a token.');
+    }
     return data.access_token;
 }
 
 export async function getTaskList(token: string) {
     const url = `${API_BASE}/tasks?type=offline&limit=100`;
-    const data = await pikpakFetch(url, {
+    const data: any = await pikpakFetch(url, {
         headers: { Authorization: `Bearer ${token}` },
     });
     return data.tasks || [];
@@ -62,24 +79,31 @@ export async function createTask(token: string, magnetLink: string) {
     const url = `${API_BASE}/offline`;
     const body = {
         kind: 'drive#offlineTask',
-        name: 'magnet', // This seems to be a required static value
+        name: 'magnet',
         params: { url: magnetLink },
     };
-    const data = await pikpakFetch(url, {
+    const data: any = await pikpakFetch(url, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
     });
+
+    if (!data.task || !data.task.id) {
+        throw new Error('Create task response from PikPak was invalid.');
+    }
     return data.task;
 }
 
 export async function getFileDownloadUrl(token: string, fileId: string) {
     const url = `${API_BASE}/files/${fileId}?with_audit=true`;
-    const data = await pikpakFetch(url, {
+    const data: any = await pikpakFetch(url, {
         headers: { Authorization: `Bearer ${token}` },
     });
+    
+    if (!data.web_content_link) {
+        throw new Error('Get file link response from PikPak was invalid.');
+    }
     return data.web_content_link;
 }
