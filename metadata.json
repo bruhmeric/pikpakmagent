@@ -1,0 +1,5 @@
+{
+  "name": "PikPak Magnet Linker",
+  "description": "An application to submit magnet links to PikPak and retrieve download URLs for the completed files. This is a frontend demo and uses a mocked service.",
+  "requestFramePermissions": []
+}
