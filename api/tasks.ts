@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getTaskList, createTask } from './lib/pikpak-client';
+import { getTaskList, createTask } from './lib/pikpak-client.ts';
 
 const getToken = (authHeader?: string) => {
     if (!authHeader) return null;
