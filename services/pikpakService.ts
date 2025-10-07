@@ -2,8 +2,19 @@ import { PikPakTask, Task } from '../types';
 
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred.' }));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    if (response.status === 504) {
+      throw new Error('The request timed out. Please try again.');
+    }
+    if (response.status >= 500) {
+      throw new Error(`Server error (${response.status}). Please check the deployment logs for details.`);
+    }
+
+    const errorData = await response.json().catch(() => null);
+    if (errorData && errorData.message) {
+      throw new Error(errorData.message);
+    }
+    
+    throw new Error(`An unknown error occurred (HTTP ${response.status}).`);
   }
   return response.json();
 };

@@ -12,12 +12,23 @@ const CLIENT_CONSTANTS = {
 };
 
 async function pikpakFetch(url: string, options: RequestInit = {}) {
-    const response = await fetch(url, options);
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error_description: 'Request failed with status ' + response.status }));
-        throw new Error(errorData.error_description || 'An unknown PikPak API error occurred');
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ 
+                error_description: `Request failed with status ${response.status}. The response was not valid JSON.` 
+            }));
+            throw new Error(errorData.error_description || 'An unknown PikPak API error occurred');
+        }
+        return response.json();
+    } catch (error) {
+        if (error instanceof Error) {
+            // Re-throw network errors or errors from the block above with more context.
+            console.error(`PikPak API request to ${url} failed:`, error.message);
+            throw new Error(`Failed to communicate with PikPak API: ${error.message}`);
+        }
+        throw new Error('An unexpected error occurred while communicating with the PikPak API.');
     }
-    return response.json();
 }
 
 export async function loginToPikPak(username: string, password: string) {
