@@ -1,22 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+// This makes the grecaptcha object available from the script loaded in index.html
+declare const grecaptcha: any;
 
 interface LoginProps {
-  onLogin: (credentials: { username: string; password: string }) => Promise<void>;
+  onLogin: (credentials: { username: string; password: string; captchaToken: string; }) => Promise<void>;
 }
+
+// IMPORTANT: Replace with your Google reCAPTCHA v2 Site Key
+const RECAPTCHA_SITE_KEY = '6LfyP-ErAAAAAPXtdD-LHK74QTeu-qip15iIoLXr';
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const captchaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const renderCaptcha = () => {
+      if (captchaRef.current && typeof grecaptcha !== 'undefined') {
+        grecaptcha.render(captchaRef.current, {
+          sitekey: RECAPTCHA_SITE_KEY,
+          theme: 'dark',
+          callback: (token: string) => setCaptchaToken(token),
+          'expired-callback': () => setCaptchaToken(null),
+        });
+      }
+    };
+
+    // Check if grecaptcha is ready, if not wait for it.
+    if (typeof grecaptcha === 'undefined' || !grecaptcha.render) {
+        const interval = setInterval(() => {
+            if (typeof grecaptcha !== 'undefined' && grecaptcha.render) {
+                clearInterval(interval);
+                renderCaptcha();
+            }
+        }, 100);
+        return () => clearInterval(interval);
+    } else {
+        renderCaptcha();
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim() && password.trim()) {
+    if (username.trim() && password.trim() && captchaToken) {
       setIsLoading(true);
       setError(null);
       try {
-        await onLogin({ username: username.trim(), password: password.trim() });
+        await onLogin({ username: username.trim(), password: password.trim(), captchaToken });
       } catch (e) {
         if (e instanceof Error) {
             setError(e.message);
@@ -24,6 +58,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             setError('An unknown error occurred during login.');
         }
         setIsLoading(false);
+        // Reset captcha on failure
+        if (typeof grecaptcha !== 'undefined') {
+            grecaptcha.reset();
+            setCaptchaToken(null);
+        }
       }
     }
   };
@@ -71,10 +110,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 disabled={isLoading}
               />
             </div>
+
+            <div className="flex justify-center">
+                <div ref={captchaRef}></div>
+            </div>
+
             {error && <p className="text-red-400 text-sm text-center">{error}</p>}
             <button
               type="submit"
-              disabled={isLoading || !username.trim() || !password.trim()}
+              disabled={isLoading || !username.trim() || !password.trim() || !captchaToken}
               className="w-full flex items-center justify-center gap-2 bg-white text-black font-semibold px-6 py-3 rounded-md hover:bg-gray-200 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-white"
             >
               {isLoading ? 'Signing In...' : 'Sign In'}

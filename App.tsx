@@ -13,7 +13,7 @@ const App: React.FC = () => {
 
   const isAuthenticated = !!token;
 
-  const handleLogin = async (credentials: { username: string; password: string }) => {
+  const handleLogin = async (credentials: { username: string; password: string; captchaToken: string; }) => {
     const { token } = await pikpakService.login(credentials);
     localStorage.setItem('pikpak_token', token);
     setToken(token);

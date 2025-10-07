@@ -19,7 +19,7 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-export const login = async (credentials: { username: string; password: string }): Promise<{ token: string }> => {
+export const login = async (credentials: { username: string; password: string; captchaToken: string; }): Promise<{ token: string }> => {
   const response = await fetch('/api/login', {
     method: 'POST',
     headers: {

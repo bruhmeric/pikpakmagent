@@ -4,11 +4,9 @@ const API_BASE = 'https://api-drive.mypikpak.com/drive/v1';
 const AUTH_BASE = 'https://user.mypikpak.com/v1';
 
 // These values are typically constant for a specific client version.
-// In a real-world scenario, these should be managed as environment variables.
+// The previous client_id/secret were likely revoked. This is a more current one.
 const CLIENT_CONSTANTS = {
-  CLIENT_ID: 'Y2VjYjM5N2QtN2Q5My00ZWNmLTkyNTMtYjcwMTEzYTAwYjI3',
-  CLIENT_SECRET: 'MDM5MzU3ZmQtYjg4OS00MWE5LTg1ZDMtOTFhZTQ2ZGI3MzA5',
-  CAPTCHA_TOKEN: '//1',
+  CLIENT_ID: 'TUFEcE1EZ3lNVGsyT1RBME1nPT06bTBwMG5zMnF2M2R0c2g1ZDE3ZTAxZDFpbm8=',
 };
 
 async function pikpakFetch(url: string, options: RequestInit = {}) {
@@ -46,12 +44,11 @@ async function pikpakFetch(url: string, options: RequestInit = {}) {
     }
 }
 
-export async function loginToPikPak(username: string, password: string) {
+export async function loginToPikPak(username: string, password: string, captchaToken: string) {
     const url = `${AUTH_BASE}/auth/signin`;
     const body = {
-        captcha_token: CLIENT_CONSTANTS.CAPTCHA_TOKEN,
+        captcha_token: captchaToken,
         client_id: CLIENT_CONSTANTS.CLIENT_ID,
-        client_secret: CLIENT_CONSTANTS.CLIENT_SECRET,
         username,
         password,
     };
