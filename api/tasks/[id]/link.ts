@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getFileDownloadUrl } from '../../lib/pikpak-client.ts';
+import { getFileDownloadUrl } from '../../lib/pikpak-client.js';
 
 const getToken = (authHeader?: string) => {
     if (!authHeader) return null;
